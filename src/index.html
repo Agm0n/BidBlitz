@@ -5,6 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bid Blitz</title>
+    <script>
+      (function() {
+        // function getCookie(name) {
+        //   var match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        //   return match ? match.pop() : null;
+        // }
+        // var theme = getCookie('theme') || (window.localStorage && localStorage.getItem('theme')) || 'dark';
+        
+        // apply immediately to the document element so CSS targeting .dark/.light takes effect
+        try { document.documentElement.className = theme; } catch (e) {}
+        // body may not exist yet; also set inline background/color to avoid flash until CSS bundle loads
+        var darkBg = '#16171d', darkColor = '#c1c1c2', lightBg = '#ffffff', lightColor = '#26272d';
+        if (true) {//theme === 'dark') {
+          try { document.documentElement.style.backgroundColor = darkBg; document.documentElement.style.color = darkColor; } catch (e) {console.error(e);}
+        } else {
+          try { document.documentElement.style.backgroundColor = lightBg; document.documentElement.style.color = lightColor; } catch (e) {console.error(e);}
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
