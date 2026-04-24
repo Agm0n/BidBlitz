@@ -272,8 +272,8 @@ function AuctionView() {
         <div style={{display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center"}}>
             {/* Loading symbol */}
             {isLoading &&
-                <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", marginTop: "5rem"}}>
-                Loading
+                <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", marginTop: "5rem", zIndex: 9999}}>
+                    <img style={{width: "8rem", height: "8rem"}} className="rotating" src="/loading.png"/>
                 </div>
             }
             {/* A popup for displaying mostly error info (for example bid too low) */}
@@ -315,7 +315,7 @@ function AuctionView() {
                 </div>
                 {/* Refresh Button */}
                 <button title="Check for updates" style={styles.button} onClick={() => {fetchAuctionDetails()}}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg className={isLoading? "rotating" : ""} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path stroke="none" d="M0 0h24v24H0z" fill="none" />
                         <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" />
                         <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" />
