@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { greenColor, primaryColor, type auctionType, type endedAuctionType, type newBidType } from "../App";
+import { greenColor, primaryColor, SERVER_ADDR, type auctionType, type endedAuctionType, type newBidType } from "../App";
 import useSharedEventSource from '../hooks/useSharedEventSource';
 
 export const getTimeLeft = (auctionTime) => {
@@ -31,7 +31,7 @@ function AuctionListView() {
 
   const fetchAuctions = async () => {
     setLoading(true);
-    fetch("http://127.0.0.1:3005/api/auctions", {method: "GET", redirect: "follow"})
+    fetch(SERVER_ADDR + "/api/auctions", {method: "GET", redirect: "follow"})
       .then((response) => response.json())
       .then((result) => {
         setAuctions(result);
@@ -100,7 +100,7 @@ function AuctionListView() {
     }
   }), [fetchAuctions]);
 
-  useSharedEventSource('http://127.0.0.1:3005/api/stream', sseHandlers, true);
+  useSharedEventSource(SERVER_ADDR + '/api/stream', sseHandlers, true);
 
   const styles = {
     auctionCard: {

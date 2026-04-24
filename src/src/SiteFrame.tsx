@@ -1,4 +1,4 @@
-import { useState, type PropsWithChildren } from "react"
+import { type PropsWithChildren } from "react"
 import { primaryColor, useCookies } from "./App"
 
 /// Header for the title and logo of the site and also a theme toggle button
