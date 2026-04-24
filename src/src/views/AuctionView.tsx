@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { greenColor, primaryColor, type auctionType, type bidHistoryEntry, type endedAuctionType, type newBidType } from "../App";
+import { greenColor, primaryColor, useCookies, type auctionType, type bidHistoryEntry, type endedAuctionType, type newBidType } from "../App";
 import { getTimeLeft } from "./AuctionListView";
 import useSharedEventSource from "../hooks/useSharedEventSource";
 
@@ -9,8 +9,12 @@ function AuctionView() {
     const {auctionId} = useParams();
     const [auction, setAuction] = React.useState({} as auctionType);
     const [isLoading, setLoading] = React.useState(true);
+    const [insertedBid, setInsertedBid] = React.useState(0);
+    const [infoMessage, setInfoMessage] = React.useState("");
     const [, setNow] = React.useState(Date.now());
 
+    const [username, setUsername] = useCookies('username');
+    
     const fetchAuctionDetails = React.useCallback(async () => {
         setLoading(true);
         try {
@@ -117,7 +121,8 @@ function AuctionView() {
             borderRadius: "0.5rem",
             border: "1px solid " + primaryColor,
             backgroundColor: primaryColor,
-            cursor: "pointer"
+            cursor: "pointer",
+            color: "white"
         },
         timeLeft: {
             display: "flex",
@@ -162,10 +167,69 @@ function AuctionView() {
             paddingTop: 0,
             width: "fit-content",
             gap: "0.5rem"
+        },
+        bidInput: {
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "0.5rem",
+            backgroundColor: "rgba(140, 140, 145, 0.15)",
+            border: "2px solid " + primaryColor,
+            borderRadius: "4px",
+            color: "#c1c1c2",
+            width: "5rem",
+            fontSize: "1.5rem"
+        },
+        infoMessage: {
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 100,
+            position: "absolute",
+            backgroundColor: "rgba(179, 11, 11, 0.5)",
+            borderRadius: "0.5rem",
+            padding: "2rem",
+            width: "fit-content",
+            gap: "0.5rem",
+            transition: "opacity 0.2s",
+            pointerEvents: "none"
         }
     }
+    
+    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setInsertedBid(parseInt(event.target.value) > auction.currentBid? parseInt(event.target.value) : (auction.currentBid + 1))
+    }
+    
+    const showInfoMessage = async (message: string, seconds: number = 5) => {
+        setInfoMessage(message)
+        setTimeout(() => {
+            setInfoMessage("");
+        }, seconds * 1000);
+    }
 
-
+    const highliteInput = async (id: string, seconds: number = 5) => {
+        document.getElementById(id).style.borderBottomColor = "red";
+        setTimeout(() => {
+            document.getElementById(id).style.borderBottomColor = primaryColor;
+        }, seconds * 1000);
+    }
+    
+    const canEnterBid = (showWhy: boolean = false) => {
+        if(insertedBid <= auction.currentBid) {
+            if(showWhy){
+                highliteInput("bidInput");
+                showInfoMessage("Bid amount too low");
+            }
+            return false;
+        }
+        if (!username) {
+            if(showWhy){
+                highliteInput("usernameInput");
+                showInfoMessage("Can't bid without a username");
+            }
+        }
+        return true;
+    }
 
     return (
         <div style={{display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center"}}>
@@ -175,6 +239,10 @@ function AuctionView() {
                 Loading
                 </div>
             }
+            <div style={{...(styles.infoMessage as React.CSSProperties), opacity: infoMessage === ""? 0 : "1"}}>
+                {infoMessage}
+            </div>
+            
             {/* The Title Card */}
             <div style={styles.titleCard as React.CSSProperties}>
                 {/* Back Button */}
@@ -253,6 +321,15 @@ function AuctionView() {
                     </div>
                 }
             </div>
+            {(auction.status !== "ended" && getTimeLeft(auction.endsAt) !== "Auction ended") &&
+                <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.2rem"}}>
+                    <input id="bidInput" style={styles.bidInput} type="number" value={insertedBid} placeholder="Enter bid" min={auction.currentBid + 1} onChange={handleInputChange}/>
+                    <h2>₪</h2>
+                    <button style={{...styles.button, margin: 0, marginLeft: "0.5rem", padding: "0.5rem", cursor: canEnterBid()? "pointer" : "not-allowed"}} onClick={() => {canEnterBid(true)}}>
+                        <h2 style={{padding: 0, margin: 0, fontWeight: "normal", fontSize: "1.5rem"}}>Enter bid</h2>
+                    </button>
+                </div>
+            }
         </div>
     )
 }
