@@ -8,7 +8,7 @@ npm install
 npm run dev
 ```
 
-# How to run test
+# How to run unit tests
 Also in the first /src directory run command:
 ```bash
 npm run test
