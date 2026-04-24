@@ -57,16 +57,18 @@ function AuctionView() {
           setNow(Date.now());
         }, 1000);
         return () => clearInterval(interval);
-      }, []);
+    }, []);
+
 
     // If auction has just ended (status changed or time ran out), fetch details once
     useEffect(() => {
         if (!auction) return;
-        const isEnded = auction.status === 'ended' || getTimeLeft(auction.endsAt) === 'Auction ended';
+        const isEnded = auction.status === 'ended';
         if (isEnded) {
             fetchAuctionDetails();
         }
     }, [auction?.status, auction?.endsAt]);
+
 
     // Setup SSE using the hook with stable handlers
     const sseHandlers = React.useMemo(() => ({// Hook that is only updating between renders when something relevent changes
@@ -253,10 +255,23 @@ function AuctionView() {
             };
 
             fetch(SERVER_ADDR + "/api/bid", requestOptions)
-            .then((response) => response.text())
-            .then((result) => {
-                console.log(result);
-                setLoading(false);
+            .then((response) => {
+                response.json().then(result => {
+                    console.log(result);
+                    setLoading(false);
+                    if(response.status >= 400 && response.status < 500){
+                        switch (result.error){
+                            case 'Auction has ended':
+                                showInfoMessage("Too late. The auction has ended");
+                                break;
+                            case 'Bid must be higher than current bid':
+                                showInfoMessage("Someone outbid you. Try a higher amount");
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                })
             })
             .catch((error) => console.error(error));
         }
