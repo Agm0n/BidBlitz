@@ -1,25 +1,52 @@
 import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { greenColor, primaryColor, type auctionType, type bidHistoryEntry } from "../App";
+import { greenColor, primaryColor, type auctionType, type bidHistoryEntry, type newBidType } from "../App";
 import { getTimeLeft } from "./AuctionListView";
+import useSharedEventSource from "../hooks/useSharedEventSource";
 
 
 function AuctionView() {
     const {auctionId} = useParams();
     const [auction, setAuction] = React.useState({} as auctionType);
+    const [isLoading, setLoading] = React.useState(true);
     const [, setNow] = React.useState(Date.now());
 
-    const fetchAuctionDetails = async () => {
-    fetch(`http://127.0.0.1:3005/api/auctions/${auctionId}`, {method: "GET", redirect: "follow"})
-      .then((response) => response.json())
-      .then((result) => {
-        setAuction(result);
-      })
-      .catch((error) => console.error("Error fetching auctions:", error));
+    const fetchAuctionDetails = React.useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`http://127.0.0.1:3005/api/auctions/${auctionId}`, {method: "GET", redirect: "follow"});
+            const result = await response.json();
+            setAuction(result);
+        } catch (error) {
+            console.error("Error fetching auctions:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [auctionId]);
+
+    const addBid = async(newBid: newBidType) => {
+        setAuction(prev => {
+            if (!prev || prev.id !== newBid.auctionId) return prev;
+            
+            const formatedBid = { bidder: newBid.bidder, amount: newBid.amount, timestamp: newBid.timestamp };
+            
+            // Handle dupes
+            if(prev.bidHistory.includes(formatedBid) || (prev.bidHistory.find(b => b.bidder === formatedBid.bidder && b.amount === formatedBid.amount && b.timestamp === formatedBid.timestamp))){
+                return prev;
+            }
+
+            const updatedAuction = { ...prev } as auctionType;
+            updatedAuction.currentBid = newBid.amount;
+            updatedAuction.currentBidder = newBid.bidder;
+            updatedAuction.bidHistory = Array.isArray(updatedAuction.bidHistory) ? [...updatedAuction.bidHistory, formatedBid] : [formatedBid];
+            return updatedAuction;
+        });
     }
 
     useEffect(() => {
+        // Initial fetch
         fetchAuctionDetails();
+
         const interval = setInterval(() => {
           // re-rendering every second to update the time left for each auction
           setNow(Date.now());
@@ -27,7 +54,37 @@ function AuctionView() {
         return () => clearInterval(interval);
       }, []);
 
-      
+    // If auction has just ended (status changed or time ran out), fetch details once
+    useEffect(() => {
+        if (!auction) return;
+        const isEnded = auction.status === 'ended' || getTimeLeft(auction.endsAt) === 'Auction ended';
+        if (isEnded) {
+            fetchAuctionDetails();
+        }
+    }, [auction?.status, auction?.endsAt]);
+
+    // Setup SSE using the hook with stable handlers
+    const sseHandlers = React.useMemo(() => ({// Hook that is only updating between renders when something relevent changes
+    events: {
+        'new_bid': (event) => {
+            const newBid = JSON.parse(event.data) as newBidType;
+            if (newBid.auctionId === auctionId){
+                console.log("New bid", newBid);
+                addBid(newBid);
+            }
+        }
+    },
+    onOpen: () => {
+        console.log('Connection established');
+        fetchAuctionDetails();
+    },
+    onError: (e) => {
+        console.error('EventSource error, connection closed:', e);
+    }
+    }), [fetchAuctionDetails]);
+
+    useSharedEventSource('http://127.0.0.1:3005/api/stream', sseHandlers, true);
+
     const styles = {
         titleCard: {
             display: "flex",
@@ -101,6 +158,12 @@ function AuctionView() {
 
     return (
         <div style={{display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center"}}>
+            {/* Loading symbol */}
+            {isLoading &&
+                <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", marginTop: "5rem"}}>
+                Loading
+                </div>
+            }
             {/* The Title Card */}
             <div style={styles.titleCard as React.CSSProperties}>
                 {/* Back Button */}
@@ -155,16 +218,16 @@ function AuctionView() {
                         <div style={{...(styles.bidderCard as React.CSSProperties), backgroundColor: false? greenColor : primaryColor.replace("0.3", (0.15 + (index % 2)/12) + "")}}>
                             <h3 style={{fontWeight: "bolder", textShadow: "2px 2px 2px rgba(0, 0, 0, 0.5)"}}>{bid.bidder + ":"}</h3>
                             <h3 style={{fontWeight: "normal"}}>{bid.amount + "₪"}</h3>
-                            <h4 style={{color: "rgba(200, 200, 200, 0.5)", display: "flex", justifyContent: "center", alignItems: "center", padding: 0, margin: 0}}>
+                            <div style={{color: "rgba(200, 200, 200, 0.5)", fontWeight: "bold", display: "flex", justifyContent: "center", alignItems: "center", padding: 0, margin: 0}}>
                                 {new Date(bid.timestamp).getHours().toString() + ":" + new Date(bid.timestamp).getMinutes().toString().padStart(2, '0')}
                                 <h4 style={{fontSize: "0.9rem", padding: 0}}>{":" + new Date(bid.timestamp).getSeconds().toString().padStart(2, '0')}</h4>
-                            </h4>
+                            </div>
                         </div>
                     </div>
                 ))}
 
                 {/* Displaying Auction Results */}
-                {(auction.status === "ended" || getTimeLeft(auction.endsAt) === "Auction ended") && fetchAuctionDetails() &&
+                {(auction.status === "ended" || getTimeLeft(auction.endsAt) === "Auction ended") &&
                     <div style={{display: "flex", justifyContent: "center", alignItems: "center"}}>
                         <div style={{...(styles.bidderCard as React.CSSProperties), backgroundColor: primaryColor.replace("0.3", "0.4")}}>
                             {auction.currentBidder?

@@ -11,7 +11,7 @@ export const greenColor: string = "rgba(38, 219, 44, 0.3)";
 export type bidHistoryEntry = {
     bidder: string,
     amount: number,
-    timestamp: string
+    timestamp: number
 }
 
 export type auctionType = {
@@ -24,6 +24,15 @@ export type auctionType = {
     endsAt: number,
     status: string,
     bidHistory: bidHistoryEntry[]
+}
+
+export type newBidType = {
+  auctionId: string,
+  bidder: string,
+  amount: number,
+  previousBid: number,
+  timestamp: number,
+  bid_id: string
 }
 
 // export const useCookies = (

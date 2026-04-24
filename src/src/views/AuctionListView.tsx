@@ -1,5 +1,6 @@
-import React, { use, useEffect } from "react";
-import { greenColor, primaryColor, type auctionType } from "../App";
+import React, { useEffect } from "react";
+import { greenColor, primaryColor, type auctionType, type newBidType } from "../App";
+import useSharedEventSource from '../hooks/useSharedEventSource';
 
 export const getTimeLeft = (auctionTime) => {
   var timeLeftString = "";
@@ -20,28 +21,68 @@ export const getTimeLeft = (auctionTime) => {
   return timeLeftString;
 };
 
+
+
 function AuctionListView() {
   const [auctions, setAuctions] = React.useState([]);
+  const [isLoading, setLoading] = React.useState(true);
   // state updated every second to force re-render so time-left text updates
   const [, setNow] = React.useState(Date.now());
 
   const fetchAuctions = async () => {
+    setLoading(true);
     fetch("http://127.0.0.1:3005/api/auctions", {method: "GET", redirect: "follow"})
       .then((response) => response.json())
       .then((result) => {
         setAuctions(result);
+        setLoading(false);
       })
       .catch((error) => console.error("Error fetching auctions:", error));
   }
 
+  const updateAuction = async (newBid: newBidType) => {
+    setLoading(true);
+    setAuctions(prev => {
+      const other = prev.filter(a => a.id !== newBid.auctionId);
+      const found = prev.find(a => a.id === newBid.auctionId);
+      const updated = { ...(found ?? {}), currentBid: newBid.amount, currentBidder: newBid.bidder };
+      return [...other, updated];
+    });
+    setLoading(false);
+  }
+
   useEffect(() => {
+    // initial fetch of all auctions when component mounts
     fetchAuctions();
+
     const interval = setInterval(() => {
       // re-rendering every second to update the time left for each auction
       setNow(Date.now());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+
+  // Setup SSE using the hook with stable handlers
+  const sseHandlers = React.useMemo(() => ({// Hook that is only updating between renders when something relevent changes
+    events: {
+      'new_bid': (event) => {
+        const newBid = JSON.parse(event.data) as newBidType;
+        console.log("New bid", newBid);
+        updateAuction(newBid);
+        // fetchAuctions();
+      }
+    },
+    onOpen: () => {
+      console.log('Connection established');
+      fetchAuctions();
+    },
+    onError: (e) => {
+      console.error('EventSource error, connection closed:', e);
+    }
+  }), [fetchAuctions]);
+
+  useSharedEventSource('http://127.0.0.1:3005/api/stream', sseHandlers, true);
 
   const styles = {
     auctionCard: {
@@ -93,7 +134,15 @@ function AuctionListView() {
 
 
   return (
+
     <div style={{display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column"}}>
+      {/* Loading symbol */}
+      {isLoading &&
+        <div style={{display: "flex", justifyContent: "center", alignItems: "center", position: "absolute", marginTop: "5rem"}}>
+          Loading
+        </div>
+      }
+      
       <div style={{display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: "1rem"}}>
         <h1>Auctions</h1>
         {/* Refresh Button */}
