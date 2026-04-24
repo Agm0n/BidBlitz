@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { validateBid, containsDupes } from "../src/views/AuctionView"
 import { type auctionType } from "../src/App"
-import { getTimeLeft } from "../src/views/AuctionListView";
+import { getTimeLeft, lessThan30 } from "../src/views/AuctionListView";
 const testAuction = {
     "id": "a5",
     "title": "Retro Arcade Machine",
@@ -110,5 +110,11 @@ describe('countdown calculation', () => {
     it("Ended right now", () => {
         const result = getTimeLeft(new Date());
         expect(result).toBeOneOf(["00:00 left", "Auction ended"]);
+    })
+    it("Is less then 30 seconds", () => {
+        const in30Seconds: Date = new Date();
+        in30Seconds.setSeconds(in30Seconds.getSeconds() + 29);
+        
+        expect(lessThan30(in30Seconds)).toBe(true);
     })
 })

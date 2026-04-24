@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { greenColor, primaryColor, SERVER_ADDR, type auctionType, type endedAuctionType, type newBidType } from "../App";
+import { greenColor, primaryColor, redColor, SERVER_ADDR, useCookies, type auctionType, type endedAuctionType, type newBidType } from "../App";
 import useSharedEventSource from '../hooks/useSharedEventSource';
 
 export const getTimeLeft = (auctionTime) => {
@@ -21,6 +21,10 @@ export const getTimeLeft = (auctionTime) => {
   return timeLeftString;
 };
 
+// if less than 30 seconds
+export const lessThan30 = (auctionTime) => {
+  return (parseInt(getTimeLeft(auctionTime).split(":")[0]) === 0 && parseInt(getTimeLeft(auctionTime).split(":")[1]) <= 30);
+}
 
 
 function AuctionListView() {
@@ -28,6 +32,10 @@ function AuctionListView() {
   const [isLoading, setLoading] = React.useState(true);
   // state updated every second to force re-render so time-left text updates
   const [, setNow] = React.useState(Date.now());
+
+  const [username, _setUsername] = useCookies('username');
+  
+  const [playedTicking, setPlayedTicking] = React.useState([]);
 
   const fetchAuctions = async () => {
     setLoading(true);
@@ -45,6 +53,15 @@ function AuctionListView() {
     setAuctions(prev => {
       const other = prev.filter(a => a.id !== newBid.auctionId);
       const found = prev.find(a => a.id === newBid.auctionId);
+
+      console.log("TESHE", found.currentBidder, username, newBid.bidder)
+      if (found.currentBid !== newBid.amount) { //Easy dupe prevention
+        new Audio("/hammer.mp3").play();
+      }
+      if(found.currentBidder === username && newBid.bidder !== username){
+        new Audio("/sad.mp3").play();
+      }
+      
       const updated: auctionType = { ...(found ?? {}), currentBid: newBid.amount, currentBidder: newBid.bidder };
       return [...other, updated];
     });
@@ -150,6 +167,14 @@ function AuctionListView() {
     }
   }
 
+  const playTickingSound = (id: string) => {
+      if (!playedTicking.includes(id)){
+          new Audio("/clock-tick.mp3").play();
+          setPlayedTicking([...playedTicking, id]);
+      }
+      return true;
+  }
+
   return (
     <div style={{display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column"}}>
       {/* Loading symbol */}
@@ -158,6 +183,7 @@ function AuctionListView() {
           <img style={{width: "8rem", height: "8rem"}} className="rotating" src="/loading.png"/>
         </div>
       }
+
       
       <div style={{display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: "1rem"}}>
         <h1>Auctions</h1>
@@ -172,7 +198,7 @@ function AuctionListView() {
       </div>
       {/* Active Auctions */}
       {auctions.filter((auction: auctionType) => auction.status === "active" && getTimeLeft(auction.endsAt) !== "Auction ended").sort((a: auctionType, b: auctionType) => a.endsAt - b.endsAt).map((auction: auctionType, index: number) => (
-        <div id={"auction-" + auction.id} style={{...(styles.auctionCard as React.CSSProperties), backgroundColor: (parseInt(getTimeLeft(auction.endsAt).split(":")[0]) === 0 && parseInt(getTimeLeft(auction.endsAt).split(":")[1]) <= 30)? "rgba(219, 44, 38, " + (0.1 + (index % 2)/10) + ")" : greenColor.replace("0.3", (0.1 + (index % 2)/10) + "")}} title="click to enter" onClick={() => window.location.href = "/auction/" + auction.id}>
+        <div id={"auction-" + auction.id} style={{...(styles.auctionCard as React.CSSProperties), backgroundColor: lessThan30(auction.endsAt)? "rgba(219, 44, 38, " + (0.1 + (index % 2)/10) + ")" : greenColor.replace("0.3", (0.1 + (index % 2)/10) + "")}} title="click to enter" onClick={() => window.location.href = "/auction/" + auction.id}>
           {/* Image */}
           <h2>{auction.image}</h2>
           
@@ -193,10 +219,16 @@ function AuctionListView() {
           </div>
           {/* Time Left */}
           <div>
-            <div style={{...styles.timeLeft, backgroundColor: (parseInt(getTimeLeft(auction.endsAt).split(":")[0]) === 0 && parseInt(getTimeLeft(auction.endsAt).split(":")[1]) <= 30)? "rgba(180, 44, 38, 0.5)" : primaryColor}} title="Time left">
+            <div style={{...styles.timeLeft, backgroundColor: lessThan30(auction.endsAt)? redColor : primaryColor}} title="Time left">
               {getTimeLeft(auction.endsAt)}
             </div>
           </div>
+
+          
+        {/* For playing ticking sound when 30 seconds or less are left */}
+        {lessThan30(auction.endsAt) && playTickingSound(auction.id) &&
+            <></>
+        }
         </div>
       ))}
 

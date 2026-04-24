@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { greenColor, primaryColor, SERVER_ADDR, useCookies, type auctionType, type bidHistoryEntry, type endedAuctionType, type newBidType } from "../App";
-import { getTimeLeft } from "./AuctionListView";
+import { greenColor, primaryColor, redColor, SERVER_ADDR, useCookies, type auctionType, type bidHistoryEntry, type endedAuctionType, type newBidType } from "../App";
+import { getTimeLeft, lessThan30 } from "./AuctionListView";
 import useSharedEventSource from "../hooks/useSharedEventSource";
 
 export type BidValidationResult = {
@@ -31,6 +31,8 @@ function AuctionView() {
 
     const [snipeProtection, setSnipeProtection] = React.useState(false);
 
+    const [playedTicking, setPlayedTicking] = React.useState(false);
+
     const [username, _setUsername] = useCookies('username');
     
     const fetchAuctionWithoutUpdating = React.useCallback(async () => {
@@ -51,6 +53,7 @@ function AuctionView() {
     }, [auctionId]);
 
     const addBid = async(newBid: newBidType) => {
+        let wasDupe = false;
         setAuction(prev => {
             if (!prev || prev.id !== newBid.auctionId) return prev;
             
@@ -58,6 +61,7 @@ function AuctionView() {
             
             // Handle dupes
             if(containsDupes(prev, formatedBid)){
+                wasDupe = true;
                 return prev;
             }
 
@@ -66,13 +70,21 @@ function AuctionView() {
             updatedAuction.currentBidder = newBid.bidder;
             updatedAuction.bidCount += 1;
             updatedAuction.bidHistory = Array.isArray(updatedAuction.bidHistory) ? [...updatedAuction.bidHistory, formatedBid] : [formatedBid];
+            
             return updatedAuction;
         });
+        if(!wasDupe){
+            new Audio("/hammer.mp3").play();
+        }
     }
 
     useEffect(() => {
         // Initial fetch
         fetchAuctionDetails();
+        fetchAuctionWithoutUpdating().then(auction => {
+            setInsertedBid(auction.currentBid + 1);
+        })
+
 
         const interval = setInterval(() => {
           // re-rendering every second to update the time left for each auction
@@ -231,11 +243,19 @@ function AuctionView() {
     }
     
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setInsertedBid(parseInt(event.target.value) > auction.currentBid? parseInt(event.target.value) : (auction.currentBid + 1))
+        // setInsertedBid(parseInt(event.target.value) > auction.currentBid? parseInt(event.target.value) : (auction.currentBid + 1));
+        setInsertedBid(parseInt(event.target.value));
     }
     
     const showInfoMessage = async (message: string, seconds: number = 3) => {
         setInfoMessage(message)
+
+        if(message === "Snipe Alert!"){
+            new Audio("/snipe.mp3").play();
+        } else {
+            new Audio("/error.mp3").play();
+        }
+        
         setTimeout(() => {
             setInfoMessage("");
         }, seconds * 1000);
@@ -320,6 +340,14 @@ function AuctionView() {
         }
     }
 
+    const playTickingSound = () => {
+        if (!playedTicking){
+            new Audio("/clock-tick.mp3").play();
+            setPlayedTicking(true);
+        }
+        return true;
+    }
+
     return (
         <div style={{display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center"}}>
             {/* Loading symbol */}
@@ -332,6 +360,11 @@ function AuctionView() {
             <div style={{...(styles.infoMessage as React.CSSProperties), opacity: infoMessage === ""? 0 : "1"}}>
                 {infoMessage}
             </div>
+
+            {/* For playing ticking sound when 30 seconds or less are left */}
+            {lessThan30(auction.endsAt) && playTickingSound() &&
+                <></>
+            }
             
             {/* The Title Card */}
             <div style={styles.titleCard as React.CSSProperties}>
@@ -362,7 +395,7 @@ function AuctionView() {
                     </div>
                 </div>
                 {/* Time Left */}
-                <div style={{...styles.timeLeft, backgroundColor: (parseInt(getTimeLeft(auction.endsAt).split(":")[0]) === 0 && parseInt(getTimeLeft(auction.endsAt).split(":")[1]) <= 30)? "rgba(180, 44, 38, 0.5)" : primaryColor}} title="Time left">
+                <div style={{...styles.timeLeft, backgroundColor: lessThan30(auction.endsAt)? redColor : primaryColor}} title="Time left">
                     {getTimeLeft(auction.endsAt)}
                 </div>
                 {/* Refresh Button */}
@@ -375,7 +408,7 @@ function AuctionView() {
                 </button>
             </div>
             {/* Auction History */}
-            <div style={styles.historyWindow as React.CSSProperties}>
+            <div style={{...styles.historyWindow as React.CSSProperties, border: lessThan30(auction.endsAt)? "4px solid " + redColor : "2px solid " + primaryColor}}>
                 <div style={{...(styles.bidderCard as React.CSSProperties)}}>
                     <h3 style={{textShadow: "2px 2px 2px rgba(0, 0, 0, 0.5)"}}>Start Price:</h3>
                     <h3 style={{fontWeight: "normal"}}>{auction.startPrice + "₪"}</h3>

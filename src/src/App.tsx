@@ -9,6 +9,7 @@ export const SERVER_ADDR = "http://127.0.0.1:3005"
 
 export const primaryColor: string = "rgba(130, 130, 135, 0.3)";
 export const greenColor: string = "rgba(38, 219, 44, 0.3)";
+export const redColor: string = "rgba(180, 44, 38, 0.5)";
 
 export type bidHistoryEntry = {
     bidder: string,
