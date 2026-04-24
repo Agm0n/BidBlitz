@@ -4,6 +4,22 @@ import { greenColor, primaryColor, SERVER_ADDR, useCookies, type auctionType, ty
 import { getTimeLeft } from "./AuctionListView";
 import useSharedEventSource from "../hooks/useSharedEventSource";
 
+export type BidValidationResult = {
+  valid: boolean;
+  reason?: 'low' | 'no_username' | 'loading';
+};
+
+export function validateBid(insertedBid: number, auction: auctionType, username?: string, isLoading?: boolean): BidValidationResult {
+  if (typeof insertedBid !== 'number' || !auction) return { valid: false, reason: 'low' };
+  if (insertedBid <= (auction.currentBid ?? 0)) return { valid: false, reason: 'low' };
+  if (!username || username.replace(/\s/g, "") === "") return { valid: false, reason: 'no_username' };
+  if (isLoading) return { valid: false, reason: 'loading' };
+  return { valid: true };
+}
+
+export function containsDupes(prev: auctionType, formatedBid): boolean{
+    return (prev.bidHistory.find(b => b.bidder === formatedBid.bidder && b.amount === formatedBid.amount && b.timestamp === formatedBid.timestamp) !== undefined)
+}
 
 function AuctionView() {
     const {auctionId} = useParams();
@@ -13,7 +29,7 @@ function AuctionView() {
     const [infoMessage, setInfoMessage] = React.useState("");
     const [, setNow] = React.useState(Date.now());
 
-    const [username, setUsername] = useCookies('username');
+    const [username, _setUsername] = useCookies('username');
     
     const fetchAuctionDetails = React.useCallback(async () => {
         setLoading(true);
@@ -35,7 +51,7 @@ function AuctionView() {
             const formatedBid = { bidder: newBid.bidder, amount: newBid.amount, timestamp: newBid.timestamp };
             
             // Handle dupes
-            if(prev.bidHistory.includes(formatedBid) || (prev.bidHistory.find(b => b.bidder === formatedBid.bidder && b.amount === formatedBid.amount && b.timestamp === formatedBid.timestamp))){
+            if(containsDupes(prev, formatedBid)){
                 return prev;
             }
 
@@ -73,17 +89,17 @@ function AuctionView() {
     // Setup SSE using the hook with stable handlers
     const sseHandlers = React.useMemo(() => ({// Hook that is only updating between renders when something relevent changes
     events: {
-        'new_bid': (event) => {
+        'new_bid': (event: any) => {
             const newBid = JSON.parse(event.data) as newBidType;
             if (newBid.auctionId === auctionId){
                 console.log("New bid", newBid);
                 addBid(newBid);
             }
         },
-        'heartbeat': (event) => {
+        'heartbeat': (_event: any) => {
             //Ignoring gracefully
         },
-        'auction_ended': (event) => {
+        'auction_ended': (event: any) => {
             const auctionToEnd: endedAuctionType = JSON.parse(event.data);
             if(auctionToEnd.auctionId === auctionId){
                 console.log("Auction ended:", auctionToEnd);
@@ -210,39 +226,38 @@ function AuctionView() {
     }
 
     const highliteInput = async (id: string, seconds: number = 3) => {
+        if (!document.getElementById(id)) return;
         document.getElementById(id).style.borderBottomColor = "red";
         setTimeout(() => {
             document.getElementById(id).style.borderBottomColor = primaryColor;
         }, seconds * 1000);
     }
     
-    const canEnterBid = (showWhy: boolean = false) => {
-        if(insertedBid <= auction.currentBid) {
-            if(showWhy){
-                highliteInput("bidInput");
-                showInfoMessage("Bid amount too low");
+    const canEnterBid = (insertedBid: number, auction: auctionType, username: string, isLoading: boolean, showWhy: boolean = false) => {
+        const result = validateBid(insertedBid, auction, username, isLoading);
+        if (!result.valid && showWhy) {
+            switch (result.reason) {
+                case 'low':
+                    highliteInput("bidInput");
+                    showInfoMessage("Bid amount too low");
+                    break;
+                case 'no_username':
+                    highliteInput("usernameInput");
+                    showInfoMessage("Can't bid without a username");
+                    break;
+                case 'loading':
+                    showInfoMessage("Bidding in progress");
+                    break;
+                default:
+                    break;
             }
-            return false;
         }
-        if (!username || username === "") {
-            if(showWhy){
-                highliteInput("usernameInput");
-                showInfoMessage("Can't bid without a username");
-            }
-            return false;
-        }
-        if (isLoading) {
-            if(showWhy){
-                showInfoMessage("Bidding in progress");
-            }
-            return false;
-        }
-        return true;
+        return result.valid;
     }
 
     // Placing the bid
     const submitBid = async() => {
-        if(canEnterBid(true)){
+        if(canEnterBid(insertedBid, auction, username, isLoading, true)){
             setLoading(true);
             const headers = new Headers();
             headers.append("Content-Type", "application/json");
@@ -378,7 +393,7 @@ function AuctionView() {
                 <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.2rem"}}>
                     <input id="bidInput" style={styles.bidInput} type="number" value={insertedBid} placeholder="Enter bid" min={auction.currentBid + 1} onChange={handleInputChange} onKeyDown={handleKeyDown}/>
                     <h2>₪</h2>
-                    <button style={{...styles.button, margin: 0, marginLeft: "0.5rem", padding: "0.5rem", cursor: canEnterBid()? "pointer" : "not-allowed"}} onClick={submitBid}>
+                    <button style={{...styles.button, margin: 0, marginLeft: "0.5rem", padding: "0.5rem", cursor: canEnterBid(insertedBid, auction, username, isLoading)? "pointer" : "not-allowed"}} onClick={submitBid}>
                         <h2 style={{padding: 0, margin: 0, fontWeight: "normal", fontSize: "1.5rem"}}>Enter bid</h2>
                     </button>
                 </div>

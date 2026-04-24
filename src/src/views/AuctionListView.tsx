@@ -77,15 +77,15 @@ function AuctionListView() {
   // Setup SSE using the hook with stable handlers
   const sseHandlers = React.useMemo(() => ({// Hook that is only updating between renders when something relevent changes
     events: {
-      'new_bid': (event) => {
+      'new_bid': (event: any) => {
         const newBid: newBidType = JSON.parse(event.data);
         console.log("New bid", newBid);
         updateAuction(newBid);
       },
-      'heartbeat': (event) => {
+      'heartbeat': (_event: any) => {
         //Ignoring gracefully
       },
-      'auction_ended': (event) => {
+      'auction_ended': (event: any) => {
         const auctionToEnd: endedAuctionType = JSON.parse(event.data);
         console.log("Auction ended:", auctionToEnd);
         endAuction(auctionToEnd);

@@ -25,8 +25,8 @@ export type auctionType = {
     currentBidder: string,
     endsAt: number,
     status: string,
-    bidHistory: bidHistoryEntry[],
-    bidCount: number
+    bidHistory: bidHistoryEntry[] | undefined,
+    bidCount: number | undefined
 }
 
 export type newBidType = {
