@@ -23,7 +23,8 @@ export type auctionType = {
     currentBidder: string,
     endsAt: number,
     status: string,
-    bidHistory: bidHistoryEntry[]
+    bidHistory: bidHistoryEntry[],
+    bidCount: number
 }
 
 export type newBidType = {
@@ -33,6 +34,14 @@ export type newBidType = {
   previousBid: number,
   timestamp: number,
   bid_id: string
+}
+
+export type endedAuctionType = {
+  auctionId: string,
+  title: string,
+  winner: string,
+  finalPrice: number,
+  timestamp: number
 }
 
 // export const useCookies = (

@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { greenColor, primaryColor, type auctionType, type bidHistoryEntry, type newBidType } from "../App";
+import { greenColor, primaryColor, type auctionType, type bidHistoryEntry, type endedAuctionType, type newBidType } from "../App";
 import { getTimeLeft } from "./AuctionListView";
 import useSharedEventSource from "../hooks/useSharedEventSource";
 
@@ -38,6 +38,7 @@ function AuctionView() {
             const updatedAuction = { ...prev } as auctionType;
             updatedAuction.currentBid = newBid.amount;
             updatedAuction.currentBidder = newBid.bidder;
+            updatedAuction.bidCount += 1;
             updatedAuction.bidHistory = Array.isArray(updatedAuction.bidHistory) ? [...updatedAuction.bidHistory, formatedBid] : [formatedBid];
             return updatedAuction;
         });
@@ -71,6 +72,16 @@ function AuctionView() {
             if (newBid.auctionId === auctionId){
                 console.log("New bid", newBid);
                 addBid(newBid);
+            }
+        },
+        'heartbeat': (event) => {
+            //Ignoring gracefully
+        },
+        'auction_ended': (event) => {
+            const auctionToEnd: endedAuctionType = JSON.parse(event.data);
+            if(auctionToEnd.auctionId === auctionId){
+                console.log("Auction ended:", auctionToEnd);
+                fetchAuctionDetails();
             }
         }
     },

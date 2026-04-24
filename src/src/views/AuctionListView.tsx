@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { greenColor, primaryColor, type auctionType, type newBidType } from "../App";
+import { greenColor, primaryColor, type auctionType, type endedAuctionType, type newBidType } from "../App";
 import useSharedEventSource from '../hooks/useSharedEventSource';
 
 export const getTimeLeft = (auctionTime) => {
@@ -45,7 +45,18 @@ function AuctionListView() {
     setAuctions(prev => {
       const other = prev.filter(a => a.id !== newBid.auctionId);
       const found = prev.find(a => a.id === newBid.auctionId);
-      const updated = { ...(found ?? {}), currentBid: newBid.amount, currentBidder: newBid.bidder };
+      const updated: auctionType = { ...(found ?? {}), currentBid: newBid.amount, currentBidder: newBid.bidder };
+      return [...other, updated];
+    });
+    setLoading(false);
+  }
+
+  const endAuction = async (endedAuction: endedAuctionType) => {
+    setLoading(true);
+    setAuctions(prev => {
+      const other = prev.filter(a => a.id !== endedAuction.auctionId);
+      const found = prev.find(a => a.id === endedAuction.auctionId);
+      const updated: auctionType = { ...(found ?? {}), currentBid: endedAuction.finalPrice, currentBidder: endedAuction.winner, status: "ended" };
       return [...other, updated];
     });
     setLoading(false);
@@ -67,10 +78,17 @@ function AuctionListView() {
   const sseHandlers = React.useMemo(() => ({// Hook that is only updating between renders when something relevent changes
     events: {
       'new_bid': (event) => {
-        const newBid = JSON.parse(event.data) as newBidType;
+        const newBid: newBidType = JSON.parse(event.data);
         console.log("New bid", newBid);
         updateAuction(newBid);
-        // fetchAuctions();
+      },
+      'heartbeat': (event) => {
+        //Ignoring gracefully
+      },
+      'auction_ended': (event) => {
+        const auctionToEnd: endedAuctionType = JSON.parse(event.data);
+        console.log("Auction ended:", auctionToEnd);
+        endAuction(auctionToEnd);
       }
     },
     onOpen: () => {
@@ -134,7 +152,6 @@ function AuctionListView() {
 
 
   return (
-
     <div style={{display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column"}}>
       {/* Loading symbol */}
       {isLoading &&
@@ -185,7 +202,7 @@ function AuctionListView() {
       ))}
 
       {/* Ended Auctions */}
-      {auctions.filter((auction: auctionType) => auction.status === "ended" || getTimeLeft(auction.endsAt) === "Auction ended").map((auction: auctionType, index: number) => (
+      {auctions.filter((auction: auctionType) => auction.status === "ended").map((auction: auctionType, index: number) => (
         <div id={"auction-" + auction.id} style={{...(styles.auctionCard as React.CSSProperties), backgroundColor: primaryColor.replace("0.3", (0.1 + (index % 2)/12) + "")}} title="Click to enter" onClick={() => window.location.href = "/auction/" + auction.id}>
           {/* Image */}
           <h2>{auction.image}</h2>
