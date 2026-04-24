@@ -253,7 +253,6 @@ function AuctionView() {
                     </div>
                 }
             </div>
-
         </div>
     )
 }

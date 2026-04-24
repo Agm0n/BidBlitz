@@ -1,10 +1,11 @@
 import { useState, type PropsWithChildren } from "react"
-import { primaryColor } from "./App"
+import { primaryColor, useCookies } from "./App"
 
 /// Header for the title and logo of the site and also a theme toggle button
 const SiteFrame: React.FC<PropsWithChildren> = ({children}) => {
     // const [currRender, Rerender] = useState(false);
     // const [theme,setCookieValue] = useCookies('theme');
+    const [username, setUsername] = useCookies('username');
 
     const styles = {
         titleBar: {
@@ -38,8 +39,22 @@ const SiteFrame: React.FC<PropsWithChildren> = ({children}) => {
             right: "1rem",
             cursor: "pointer",
             transition: "0.2s ease-in-out",
+        },
+        usernameInput: {
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "0.5rem",
+            backgroundColor: "rgba(140, 140, 145, 0.15)",
+            border: "2px solid " + primaryColor,
+            borderRadius: "4px",
+            color: "#c1c1c2",
         }
-    } 
+    }
+
+    const handleUsernameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setUsername(event.target.value);
+    }
 
 
   return (
@@ -49,6 +64,7 @@ const SiteFrame: React.FC<PropsWithChildren> = ({children}) => {
                 <h3 style={{margin: 0}}>🔨</h3>
                 <h3 style={{margin: 0}}>Bid Blitz</h3>
             </div>
+            <input id="usernameInput" style={styles.usernameInput} type="text" placeholder="Enter username" value={username} onChange={handleUsernameChange} />
             {/* <div id="themeButton" style={styles.themeButton as React.CSSProperties} title="Change theme"
                 onClick={() => {
                     let newTheme = theme === "light" ? "dark" : "light";

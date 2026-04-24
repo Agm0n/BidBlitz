@@ -44,26 +44,27 @@ export type endedAuctionType = {
   timestamp: number
 }
 
-// export const useCookies = (
-//   key: string
-//   ): [string | undefined, (value: string) => void] => {
-//     const [cookieValue, setCookieValue] = React.useState<string | undefined>(() => {
-//       const cookie = document.cookie
-//         .split("; ")
-//         .find((row) => row.startsWith(`${key}=`));
-//       if (cookie) {
-//         return cookie.split("=")[1];
-//       }
-//       return undefined;
-//     });
+// For easily accessing cookies
+export const useCookies = (
+  key: string
+  ): [string | undefined, (value: string) => void] => {
+    const [cookieValue, setCookieValue] = React.useState<string | undefined>(() => {
+      const cookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith(`${key}=`));
+      if (cookie) {
+        return cookie.split("=")[1];
+      }
+      return undefined;
+    });
 
-//   const setCookie = (value: string) => {
-//     document.cookie = `${key}=${value}`;
-//     setCookieValue(value);
-//   };
+  const setCookie = (value: string) => {
+    document.cookie = `${key}=${value}`;
+    setCookieValue(value);
+  };
 
-//   return [cookieValue, setCookie];
-// };
+  return [cookieValue, setCookie];
+};
 
 function App() {
   // const [theme,setCookieValue] = useCookies('theme');
