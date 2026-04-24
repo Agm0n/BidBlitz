@@ -29,13 +29,19 @@ function AuctionView() {
     const [infoMessage, setInfoMessage] = React.useState("");
     const [, setNow] = React.useState(Date.now());
 
+    const [snipeProtection, setSnipeProtection] = React.useState(false);
+
     const [username, _setUsername] = useCookies('username');
     
+    const fetchAuctionWithoutUpdating = React.useCallback(async () => {
+        const response = await fetch(SERVER_ADDR + `/api/auctions/${auctionId}`, {method: "GET", redirect: "follow"});
+        return await response.json(); 
+    }, [auctionId]);
+
     const fetchAuctionDetails = React.useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch(SERVER_ADDR + `/api/auctions/${auctionId}`, {method: "GET", redirect: "follow"});
-            const result = await response.json();
+            const result = await fetchAuctionWithoutUpdating();
             setAuction(result);
         } catch (error) {
             console.error("Error fetching auctions:", error);
@@ -94,6 +100,16 @@ function AuctionView() {
             if (newBid.auctionId === auctionId){
                 console.log("New bid", newBid);
                 addBid(newBid);
+                // Bid snipe
+                fetchAuctionWithoutUpdating().then(currAuction => {
+                    if (parseInt(getTimeLeft(currAuction.endsAt).split(":")[0]) === 0 && parseInt(getTimeLeft(currAuction.endsAt).split(":")[1]) <= 10){
+                        showInfoMessage("Snipe Alert!", 2);
+                        setSnipeProtection(true);
+                        const interval = setInterval(() => {
+                            setSnipeProtection(false);
+                        }, 2000);
+                    }
+                });
             }
         },
         'heartbeat': (_event: any) => {
@@ -251,6 +267,12 @@ function AuctionView() {
                 default:
                     break;
             }
+        }
+        if (snipeProtection){
+            if(showWhy){
+                showInfoMessage("Snipe protection. Try again in 2 seconds");
+            }
+            return false
         }
         return result.valid;
     }
