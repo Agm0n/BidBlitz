@@ -260,7 +260,7 @@ function AuctionView() {
                     console.log(result);
                     setLoading(false);
                     if(response.status >= 400 && response.status < 500){
-                        switch (result.error){
+                        switch (result.error){ // I chose to differ based on the error message and not the status number because 400 is too generic
                             case 'Auction has ended':
                                 showInfoMessage("Too late. The auction has ended");
                                 break;

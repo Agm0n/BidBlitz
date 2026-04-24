@@ -63,6 +63,7 @@ const SiteFrame: React.FC<PropsWithChildren> = ({children}) => {
             <div id="Title" style={styles.title} onClick={() => window.location.href = "/"}>
                 <h3 style={{margin: 0}}>🔨</h3>
                 <h3 style={{margin: 0}}>Bid Blitz</h3>
+                <h3 id="statusIcon">🔴</h3>
             </div>
             <input id="usernameInput" style={styles.usernameInput} type="text" placeholder="Enter username" value={username} onChange={handleUsernameChange} />
             {/* <div id="themeButton" style={styles.themeButton as React.CSSProperties} title="Change theme"

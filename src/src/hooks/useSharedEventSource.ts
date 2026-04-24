@@ -51,17 +51,24 @@ function openUrl(url: string, entry: SharedEntry) {
       entry.openHandlers.forEach(h => { try { h(ev); } catch (e) {} });
       entry.isOpening = false;
       if (entry.reconnectTimer) { window.clearTimeout(entry.reconnectTimer); entry.reconnectTimer = null; }
+      document.getElementById('statusIcon').innerText = '🟢';
     };
 
     es.onerror = (ev) => {
       entry.errorHandlers.forEach(h => { try { h(ev); } catch (e) {} });
       try { es.close(); } catch (e) {}
+      document.getElementById('statusIcon').innerText = '🔴';
       entry.es = null;
       entry.isOpening = false;
       // schedule reconnect with backoff
       const wait = Math.min(entry.backoff, 30_000);
+
+      
       entry.backoff = Math.min(30_000, Math.floor(entry.backoff * 1.5));
+      
       if (entry.reconnectTimer) return; // already scheduled
+      document.getElementById('statusIcon').innerText = '🟡';
+      
       entry.reconnectTimer = window.setTimeout(() => {
         entry.reconnectTimer = null;
         openUrl(url, entry);
@@ -81,6 +88,7 @@ function openUrl(url: string, entry: SharedEntry) {
     entry.errorHandlers.forEach(h => { try { h(e); } catch (err) {} });
     entry.isOpening = false;
     // schedule reconnect if not already scheduled
+    document.getElementById('statusIcon').innerText = '🟡';
     const wait = Math.min(entry.backoff, 30_000);
     entry.backoff = Math.min(30_000, Math.floor(entry.backoff * 1.5));
     if (entry.reconnectTimer) return;
@@ -105,6 +113,7 @@ function closeEntryIfUnused(url: string) {
     }
     sharedMap.delete(url);
   }
+  document.getElementById('statusIcon').innerText = '🔴';
 }
 
 /**
