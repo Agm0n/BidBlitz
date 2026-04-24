@@ -1,25 +1,8 @@
 import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { greenColor, primaryColor } from "../App";
+import { greenColor, primaryColor, type auctionType, type bidHistoryEntry } from "../App";
 import { getTimeLeft } from "./AuctionListView";
 
-type bidHistoryEntry = {
-    bidder: string,
-    amount: number,
-    timestamp: string
-}
-
-type auctionType = {
-    id: string,
-    title: string,
-    image: string,
-    startPrice: number,
-    currentBid: number,
-    currentBidder: string,
-    endsAt: number,
-    status: string,
-    bidHistory: bidHistoryEntry[]
-}
 
 function AuctionView() {
     const {auctionId} = useParams();
@@ -76,6 +59,7 @@ function AuctionView() {
             backgroundColor: primaryColor,
             borderRadius: "0.5rem",
             padding: "0.5rem",
+            transition: "background-color 0.2s",
         },
         lastBid: {
             display: "flex",
@@ -103,7 +87,7 @@ function AuctionView() {
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
-            backgroundColor: primaryColor,
+            backgroundColor: primaryColor.replace("0.3", "0.4"),
             borderRadius: "0.5rem",
             padding: "1rem",
             paddingBottom: 0,
@@ -161,18 +145,19 @@ function AuctionView() {
             {/* Auction History */}
             <div style={styles.historyWindow as React.CSSProperties}>
                 <div style={{...(styles.bidderCard as React.CSSProperties)}}>
-                    <h3>Start Price:</h3>
-                    <h3>{auction.startPrice + "₪"}</h3>
+                    <h3 style={{textShadow: "2px 2px 2px rgba(0, 0, 0, 0.5)"}}>Start Price:</h3>
+                    <h3 style={{fontWeight: "normal"}}>{auction.startPrice + "₪"}</h3>
                 </div>
                 {/* Showing Bid History */}
-                {auction.bidHistory?.map((bid: bidHistoryEntry) => (
+                {auction.bidHistory?.map((bid: bidHistoryEntry, index: number) => (
                     <div style={{display: "flex", justifyContent: false? "flex-end" : "flex-start", alignItems: "center"}}>
                         {/* Bidder Card */}
-                        <div style={{...(styles.bidderCard as React.CSSProperties), backgroundColor: false? greenColor : primaryColor.replace("0.3", "0.15")}}>
-                            <h3>{bid.bidder + ":"}</h3>
-                            <h3>{bid.amount + "₪"}</h3>
-                            <h4 style={{color: "rgba(200, 200, 200, 0.5)"}}>
-                                {new Date(bid.timestamp).getMinutes().toString().padStart(2, '0') + ":" + new Date(bid.timestamp).getSeconds().toString().padStart(2, '0')}
+                        <div style={{...(styles.bidderCard as React.CSSProperties), backgroundColor: false? greenColor : primaryColor.replace("0.3", (0.15 + (index % 2)/12) + "")}}>
+                            <h3 style={{fontWeight: "bolder", textShadow: "2px 2px 2px rgba(0, 0, 0, 0.5)"}}>{bid.bidder + ":"}</h3>
+                            <h3 style={{fontWeight: "normal"}}>{bid.amount + "₪"}</h3>
+                            <h4 style={{color: "rgba(200, 200, 200, 0.5)", display: "flex", justifyContent: "center", alignItems: "center", padding: 0, margin: 0}}>
+                                {new Date(bid.timestamp).getHours().toString() + ":" + new Date(bid.timestamp).getMinutes().toString().padStart(2, '0')}
+                                <h4 style={{fontSize: "0.9rem", padding: 0}}>{":" + new Date(bid.timestamp).getSeconds().toString().padStart(2, '0')}</h4>
                             </h4>
                         </div>
                     </div>
@@ -182,7 +167,14 @@ function AuctionView() {
                 {(auction.status === "ended" || getTimeLeft(auction.endsAt) === "Auction ended") && fetchAuctionDetails() &&
                     <div style={{display: "flex", justifyContent: "center", alignItems: "center"}}>
                         <div style={{...(styles.bidderCard as React.CSSProperties), backgroundColor: primaryColor.replace("0.3", "0.4")}}>
-                            <h2>{auction.currentBidder? auction.currentBidder + " won the auction" : "No bidders"}</h2>
+                            {auction.currentBidder?
+                                <div style={{display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: "0.45rem"}}>
+                                    <h2 style={{fontWeight: "bolder", textShadow: "2px 2px 2px rgba(0, 0, 0, 0.5)"}}>{auction.currentBidder}</h2>
+                                    <h2 style={{fontWeight: "normal"}}>won the auction</h2>
+                                </div>
+                                : 
+                                <h2 style={{textShadow: "2px 2px 2px rgba(0, 0, 0, 0.5)"}}>No bidders</h2>
+                            }
                         </div>
                     </div>
                 }

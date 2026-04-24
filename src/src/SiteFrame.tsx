@@ -10,7 +10,7 @@ const SiteFrame: React.FC<PropsWithChildren> = ({children}) => {
         titleBar: {
             display: "flex",
             height: "3rem",
-            backgroundColor: primaryColor,
+            backgroundColor: primaryColor.replace("0.3", "0.2"),
             borderBottom: "2px solid " + primaryColor,
             borderBottomLeftRadius: "0.5rem",
             borderBottomRightRadius: "0.5rem",

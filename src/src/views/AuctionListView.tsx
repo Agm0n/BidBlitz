@@ -1,5 +1,5 @@
 import React, { use, useEffect } from "react";
-import { greenColor, primaryColor } from "../App";
+import { greenColor, primaryColor, type auctionType } from "../App";
 
 export const getTimeLeft = (auctionTime) => {
   var timeLeftString = "";
@@ -56,6 +56,7 @@ function AuctionListView() {
       paddingLeft: "0.5rem",
       paddingRight: "0.5rem",
       cursor: "pointer",
+      transition: "background-color 0.2s",
     },
     timeLeft: {
       display: "flex",
@@ -65,6 +66,7 @@ function AuctionListView() {
       backgroundColor: primaryColor,
       borderRadius: "0.5rem",
       padding: "0.5rem",
+      transition: "background-color 0.2s",
     },
     lastBid: {
       display: "flex",
@@ -104,8 +106,8 @@ function AuctionListView() {
         </button>
       </div>
       {/* Active Auctions */}
-      {auctions.filter((auction) => auction.status === "active" && getTimeLeft(auction.endsAt) !== "Auction ended").sort((a, b) => a.endsAt - b.endsAt).map((auction) => (
-        <div id={"auction-" + auction.id} style={{...(styles.auctionCard as React.CSSProperties), backgroundColor: (parseInt(getTimeLeft(auction.endsAt).split(":")[0]) === 0 && parseInt(getTimeLeft(auction.endsAt).split(":")[1]) <= 30)? "rgba(219, 44, 38, 0.1)" : greenColor.replace("0.3", "0.1")}} title="click to enter" onClick={() => window.location.href = "/auction/" + auction.id}>
+      {auctions.filter((auction: auctionType) => auction.status === "active" && getTimeLeft(auction.endsAt) !== "Auction ended").sort((a: auctionType, b: auctionType) => a.endsAt - b.endsAt).map((auction: auctionType, index: number) => (
+        <div id={"auction-" + auction.id} style={{...(styles.auctionCard as React.CSSProperties), backgroundColor: (parseInt(getTimeLeft(auction.endsAt).split(":")[0]) === 0 && parseInt(getTimeLeft(auction.endsAt).split(":")[1]) <= 30)? "rgba(219, 44, 38, " + (0.1 + (index % 2)/10) + ")" : greenColor.replace("0.3", (0.1 + (index % 2)/10) + "")}} title="click to enter" onClick={() => window.location.href = "/auction/" + auction.id}>
           {/* Image */}
           <h2>{auction.image}</h2>
           
@@ -134,8 +136,8 @@ function AuctionListView() {
       ))}
 
       {/* Ended Auctions */}
-      {auctions.filter((auction) => auction.status === "ended" || getTimeLeft(auction.endsAt) === "Auction ended").map((auction) => (
-        <div id={"auction-" + auction.id} style={{...(styles.auctionCard as React.CSSProperties), backgroundColor: primaryColor}} title="Click to enter" onClick={() => window.location.href = "/auction/" + auction.id}>
+      {auctions.filter((auction: auctionType) => auction.status === "ended" || getTimeLeft(auction.endsAt) === "Auction ended").map((auction: auctionType, index: number) => (
+        <div id={"auction-" + auction.id} style={{...(styles.auctionCard as React.CSSProperties), backgroundColor: primaryColor.replace("0.3", (0.1 + (index % 2)/12) + "")}} title="Click to enter" onClick={() => window.location.href = "/auction/" + auction.id}>
           {/* Image */}
           <h2>{auction.image}</h2>
           

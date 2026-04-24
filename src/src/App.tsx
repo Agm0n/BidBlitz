@@ -8,6 +8,24 @@ import AuctionView from './views/AuctionView';
 export const primaryColor: string = "rgba(130, 130, 135, 0.3)";
 export const greenColor: string = "rgba(38, 219, 44, 0.3)";
 
+export type bidHistoryEntry = {
+    bidder: string,
+    amount: number,
+    timestamp: string
+}
+
+export type auctionType = {
+    id: string,
+    title: string,
+    image: string,
+    startPrice: number,
+    currentBid: number,
+    currentBidder: string,
+    endsAt: number,
+    status: string,
+    bidHistory: bidHistoryEntry[]
+}
+
 // export const useCookies = (
 //   key: string
 //   ): [string | undefined, (value: string) => void] => {
